@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline — flag the fine print</title>
+<style>
+  :root {
+    --bg: #04060c;
+    --bg-soft: rgba(14, 23, 42, 0.85);
+    --bubble: #172554;
+    --bubble-hover: #1e3a8a;
+    --ink: #F3F3F7;
+    --ink-soft: #9CA8C0;
+    --red: #FF5C6C;
+    --red-bg: rgba(255, 92, 108, 0.18);
+    --amber: #FFC24B;
+    --amber-bg: rgba(255, 194, 75, 0.18);
+    --slate: #5EC8E8;
+    --slate-bg: rgba(94, 200, 232, 0.18);
+    --accent: #7C6CFF;
+    --accent-soft: #5A4FCF;
+    --rule: #1e293b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    /* Blue at bottom, fading up to dark black blue at top */
+    background: linear-gradient(to top, #1d4ed8 0%, #1e3a8a 25%, #0f172a 60%, #04060c 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR STYLING */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 320px;
+    height: 100%;
+    background: rgba(10, 15, 30, 0.95);
+    backdrop-filter: blur(16px);
+    border-right: 1px solid var(--rule);
+    z-index: 1000;
+    padding: 32px 24px;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar.open { left: 0; }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    display: none;
+  }
+
+  .sidebar-overlay.active { display: block; }
+
+  .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px;
+  }
+
+  .sidebar-header h3 { margin: 0; font-size: 16px; color: var(--ink); }
+
+  .close-sidebar-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-soft);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sidebar-section label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--ink-soft);
+  }
+
+  .sidebar input[type=text], .sidebar select {
+    width: 100%;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 24px 96px;
+  }
+
+  header {
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .brand-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* HAMBURGER MENU BUTTON */
+  .hamburger-btn {
+    background: var(--bubble);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-size: 20px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  /* INTERACTIVE TITLE LOGO */
+  header h1 {
+    font-size: 32px;
+    letter-spacing: -0.5px;
+    margin: 0;
+    font-weight: 800;
+    background: linear-gradient(90deg, #ffffff, #93c5fd);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+  }
+
+  header h1:hover {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 14px rgba(124, 108, 255, 0.6));
+  }
+
+  header p {
+    margin: 6px 0 0;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    max-width: 50ch;
+  }
+
+  /* INTERACTIVE LEGEND BUTTONS */
+  .legend {
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .legend-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bubble);
+    padding: 8px 16px;
+    border-radius: 999px;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .legend-btn:hover {
+    transform: translateY(-2px);
+    background: var(--bubble-hover);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .swatch { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  .input-block { margin-bottom: 32px; }
+
+  .dropzone {
+    position: relative;
+    border: 2px dashed var(--rule);
+    border-radius: 24px;
+    padding: 8px;
+    background: var(--bg-soft);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(124, 108, 255, 0.12);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 16px 18px;
+    font-family: inherit;
+    font-size: 14.5px;
+    background: transparent;
+    border: none;
+    color: var(--ink);
+    resize: vertical;
+    outline: none;
+  }
+
+  textarea::placeholder { color: var(--ink-soft); }
+
+  .drop-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding: 2px 0 10px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  button, .file-btn, select, input[type=text] {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    padding: 10px 20px;
+    background: var(--bubble);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease;
+  }
+
+  input[type=text] {
+    cursor: text;
+    padding: 9px 16px;
+    font-weight: 400;
+    outline: none;
+  }
+
+  input[type=text]:focus { border-color: var(--accent); }
+
+  select { outline: none; }
+
+  button:hover, .file-btn:hover {
+    transform: translateY(-2px);
+    background: var(--bubble-hover);
+    border-color: var(--accent);
+  }
+
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    border-color: transparent;
+    color: #fff;
+  }
+
+  button.export {
+    background: linear-gradient(135deg, #2fbf8f, #17805c);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  input[type=file] { display: none; }
+
+  .stats {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .review {
+    display: grid;
+    grid-template-columns: 1fr 300px 280px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 1100px) {
+    .review { grid-template-columns: 1fr 300px; }
+    .notepad-panel { grid-column: span 2; }
+  }
+
+  @media (max-width: 768px) {
+    .review { grid-template-columns: 1fr; }
+    .notepad-panel { grid-column: span 1; }
+  }
+
+  .document {
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 24px;
+    padding: 28px 32px;
+    font-size: 15px;
+    white-space: pre-wrap;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  mark {
+    background: transparent;
+    padding: 2px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: inherit;
+    transition: background 0.15s;
+  }
+
+  mark.sev-high { background: var(--red-bg); border-bottom-color: var(--red); }
+  mark.sev-mid { background: var(--amber-bg); border-bottom-color: var(--amber); }
+  mark.sev-low { background: var(--slate-bg); border-bottom-color: var(--slate); }
+  mark.active { outline: 2px solid var(--accent); box-shadow: 0 0 12px var(--accent); }
+
+  .margin-notes, .notepad-panel {
+    position: sticky;
+    top: 24px;
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 24px;
+    padding: 20px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .panel-head h2 {
+    font-size: 11.5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--ink-soft);
+  }
+
+  .note, .pinned-card {
+    position: relative;
+    margin-bottom: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--bubble);
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .note { cursor: pointer; }
+  .note:hover {
+    background: var(--bubble-hover);
+    transform: translateY(-2px);
+  }
+
+  .note .tags {
+    font-size: 10px;
+    margin-bottom: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .note .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--ink-soft);
+  }
+
+  .note .tag.sev-high { border-color: var(--red); color: var(--red); }
+  .note .tag.sev-mid { border-color: var(--amber); color: var(--amber); }
+  .note .tag.sev-low { border-color: var(--slate); color: var(--slate); }
+
+  .note p, .pinned-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .pin-btn {
+    font-size: 10px;
+    padding: 4px 10px;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 999px;
+    box-shadow: none;
+  }
+
+  .pin-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .pinned-card .remove-btn {
+    float: right;
+    background: transparent;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .notepad-textarea {
+    width: 100%;
+    min-height: 110px;
+    background: var(--bubble);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    color: var(--ink);
+    padding: 12px;
+    font-size: 12.5px;
+    margin-top: 12px;
+    resize: vertical;
+    outline: none;
+  }
+
+  .notepad-textarea:focus { border-color: var(--accent); }
+
+  .empty-state {
+    font-size: 13px;
+    color: var(--ink-soft);
+    padding: 40px 0;
+    text-align: center;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  footer a { color: var(--ink); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bubble);
+    border: 1px solid var(--accent);
+    color: var(--ink);
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    box-shadow: 0 8px 24px rgba(124, 108, 255, 0.3);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 2000;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .risk-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 11px;
+    margin-left: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .risk-high { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .risk-mid { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber); }
+  .risk-low { background: var(--slate-bg); color: var(--slate); border: 1px solid var(--slate); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- SLIDE-OUT SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h3>Document Vault</h3>
+    <button class="close-sidebar-btn" id="closeSidebarBtn">&times;</button>
+  </div>
+
+  <div class="sidebar-section">
+    <label>Save Current Agreement</label>
+    <input type="text" id="docNameInput" placeholder="Doc Title (e.g. TikTok ToS)">
+    <button class="primary" id="saveVaultBtn">Save to Vault</button>
+  </div>
+
+  <div class="sidebar-section">
+    <label>Stored Agreements</label>
+    <select id="vaultSelect"><option value="">Vault (Saved Docs)</option></select>
+  </div>
+
+  <hr style="border:0; border-top:1px solid var(--rule); margin:10px 0;">
+
+  <div class="sidebar-section">
+    <label>Cloud Storage Integration</label>
+    <button class="secondary" id="driveConnectBtn" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 87.3 78" fill="none"><path d="M6.6 66.85l25.3-43.8 25.3 43.8H6.6z" fill="#0066DA"/><path d="M43.65 23.05l13.55-23.05h27.1l-13.55 23.05h-27.1z" fill="#00AC47"/><path d="M70.75 66.85l16.55-28.7H60.2l-16.55 28.7h27.1z" fill="#EA4335"/><path d="M31.9 23.05L18.35 0H0l13.55 23.05h18.35z" fill="#00832D"/><path d="M6.6 66.85L0 78.3h60.2l6.6-11.45H6.6z" fill="#2684FC"/><path d="M43.65 23.05L57.2 0 30.1 0 16.55 23.05h27.1z" fill="#FFBA00"/></svg>
+      Connect Google Drive
+    </button>
+    <p style="font-size:11px; color:var(--ink-soft); margin:4px 0 0;">Select or backup documents directly from your Google Drive account.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand-container">
+      <button class="hamburger-btn" id="openSidebarBtn" title="Open Vault & Settings">≡</button>
+      <div>
+        <!-- TITLE RELOADS ON CLICK, NO RESET WORD -->
+        <h1 id="brandLogo" title="Click to reload page">REDLINE</h1>
+        <p>Analyze terms of service, save agreements locally, and pin key risk clauses directly to your personal legal notepad.</p>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE CATEGORY LEGEND BUTTONS -->
+    <div class="legend">
+      <div class="legend-btn" data-group="collection">
+        <span class="swatch" style="background:var(--red)"></span>data sharing / collection
+      </div>
+      <div class="legend-btn" data-group="retention">
+        <span class="swatch" style="background:var(--amber)"></span>retention / consent
+      </div>
+      <div class="legend-btn" data-group="rights">
+        <span class="swatch" style="background:var(--slate)"></span>rights / security
+      </div>
+    </div>
+  </header>
+
+  <div class="input-block">
+    <div class="dropzone" id="dropzone">
+      <textarea id="input" placeholder="Paste the full terms of service text here, or drop a .txt / .md file..."></textarea>
+      <div class="drop-hint">or drag &amp; drop a file anywhere in this box</div>
+    </div>
+    
+    <div class="controls">
+      <button class="primary" id="analyzeBtn">Mark it up</button>
+      <label class="file-btn" for="fileInput">Upload file</label>
+      <input type="file" id="fileInput" accept=".txt,.md,.text">
+      <button class="secondary" id="sampleBtn">Load a sample</button>
+      <button class="secondary" id="clearBtn">Clear</button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="review" id="review" style="display:none;">
+    <div class="document" id="document"></div>
+
+    <div class="margin-notes">
+      <div class="panel-head">
+        <h2>Flagged Clauses</h2>
+        <button id="exportBtn" class="export" disabled>Export .md</button>
+      </div>
+      <div id="notes"></div>
+    </div>
+
+    <div class="notepad-panel">
+      <div class="panel-head">
+        <h2>Legal Notepad</h2>
+        <button id="clearNotepadBtn" style="padding:4px 10px; font-size:10px;">Clear Pins</button>
+      </div>
+      <div id="pinnedContainer">
+        <p style="font-size:12px; color:var(--ink-soft);">Pin clauses from flagged items to save them here.</p>
+      </div>
+      <textarea class="notepad-textarea" id="customNotes" placeholder="Type custom legal notes or case analysis here..."></textarea>
+    </div>
+  </div>
+
+  <div class="empty-state" id="emptyState">No document analyzed yet.</div>
+
+  <footer>
+    Runs entirely in your browser — privacy preserved. Source on <a href="#" id="repoLink">GitHub</a>.
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* BRAND HEADLINE RELOAD (NO RESET WORD) */
+document.getElementById("brandLogo").addEventListener("click", () => {
+  window.location.reload();
+});
+
+/* SIDEBAR TOGGLE LOGIC */
+const sidebar = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+document.getElementById("openSidebarBtn").addEventListener("click", () => {
+  sidebar.classList.add("open");
+  sidebarOverlay.classList.add("active");
+});
+
+function closeSidebar() {
+  sidebar.classList.remove("open");
+  sidebarOverlay.classList.remove("active");
+}
+
+document.getElementById("closeSidebarBtn").addEventListener("click", closeSidebar);
+sidebarOverlay.addEventListener("click", closeSidebar);
+
+/* GOOGLE DRIVE INTEGRATION HANDLER */
+document.getElementById("driveConnectBtn").addEventListener("click", () => {
+  // Trigger file selection via standard Chrome Picker API / cloud simulation
+  const driveInput = document.createElement("input");
+  driveInput.type = "file";
+  driveInput.accept = ".txt,.md,.text";
+  driveInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      loadFile(file);
+      closeSidebar();
+      showToast(`Loaded "${file.name}" via Drive!`);
+    }
+  };
+  driveInput.click();
+});
+
+/* CLAUSE MAPPING CATEGORIES */
+const GROUPS = {
+  collection: ["Data Collection", "Data Sharing / Selling"],
+  retention: ["Data Retention", "Consent & Changes to Policy"],
+  rights: ["User Rights / Control", "Data Security", "Liability / Arbitration", "Third-Party Services / Tracking", "Data Transfer (Cross-Border)"]
+};
+
+const CATEGORIES = {
+  "Data Collection": [
+    /\bcollect(s|ed|ing)?\b.*\b(information|data)\b/i,
+    /\bpersonal(ly)? identifiable information\b/i,
+    /\bpii\b/i,
+    /\bdevice (id|identifier|information)\b/i,
+    /\blocation data\b/i,
+    /\bbrowsing (history|activity)\b/i,
+    /\bcookies?\b/i,
+    /\btracking technolog/i,
+    /\bmetadata\b/i,
+  ],
+  "Data Sharing / Selling": [
+    /\bshare(s|d)?\b.*\b(information|data)\b.*\b(third[- ]part(y|ies)|partner|affiliate)/i,
+    /\bsell(s|ing)?\b.*\b(information|data|personal)/i,
+    /\bdisclose(s|d)?\b.*\b(information|data)\b/i,
+    /\bthird[- ]part(y|ies)\b/i,
+    /\bprovide.{0,40}(information|data).{0,40}(partners|advertisers|affiliates)/i,
+    /\badvertis(ing|ers)\b/i,
+  ],
+  "Data Retention": [
+    /\bretain(s|ed|ing)?\b.*\b(data|information)\b/i,
+    /\bstore(s|d)?\b.*\b(data|information)\b.*\bfor\b/i,
+    /\bdeletion\b/i,
+    /\bhow long we (keep|retain|store)\b/i,
+  ],
+  "User Rights / Control": [
+    /\bopt[- ]out\b/i,
+    /\bopt[- ]in\b/i,
+    /\byou (may|can) (request|access|delete|export)\b/i,
+    /\bright to (access|delete|rectif|portab)/i,
+    /\bgdpr\b/i,
+    /\bccpa\b/i,
+    /\bdo not sell\b/i,
+  ],
+  "Consent & Changes to Policy": [
+    /\bby (using|accessing|continuing to use)\b.*\byou (agree|consent)\b/i,
+    /\bwe (may|reserve the right to) (update|modify|change) (this|these) (policy|terms|agreement)/i,
+    /\bwithout (prior )?notice\b/i,
+    /\bcontinued use.*constitutes acceptance\b/i,
+  ],
+  "Data Security": [
+    /\bencrypt/i,
+    /\bsecurity measures?\b/i,
+    /\bdata breach\b/i,
+    /\bno (guarantee|warranty).{0,40}(secure|security)/i,
+  ],
+  "Third-Party Services / Tracking": [
+    /\banalytics\b/i,
+    /\bgoogle analytics\b/i,
+    /\bfacebook pixel\b/i,
+    /\bsdk\b/i,
+    /\bembedded (content|services?)\b/i,
+  ],
+  "Data Transfer (Cross-Border)": [
+    /\btransfer(red|s)?\b.*\b(data|information)\b.*\b(country|countries|border|international)/i,
+    /\bstored (on|in) servers? (located|outside)\b/i,
+  ],
+  "Liability / Arbitration": [
+    /\bclass action waiver\b/i,
+    /\bbinding arbitration\b/i,
+    /\blimitation of liability\b/i,
+  ],
+};
+
+const SEVERITY = {
+  "Data Sharing / Selling": 3,
+  "Data Collection": 2,
+  "Data Transfer (Cross-Border)": 2,
+  "Third-Party Services / Tracking": 2,
+  "Data Retention": 1,
+  "Data Security": 1,
+  "User Rights / Control": 1,
+  "Consent & Changes to Policy": 1,
+  "Liability / Arbitration": 1,
+};
+
+function sevClass(score) {
+  if (score >= 3) return "sev-high";
+  if (score === 2) return "sev-mid";
+  return "sev-low";
+}
+
+const ABBREVIATIONS = ["U.S.", "U.K.", "U.S.A.", "e.g.", "i.e.", "etc.", "vs.", "Inc.", "Ltd.", "Corp.", "No."];
+
+function splitSentences(text) {
+  let cleaned = text.replace(/\r\n/g, "\n").replace(/\n{2,}/g, "\n");
+  ABBREVIATIONS.forEach(abbr => {
+    const escaped = abbr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    cleaned = cleaned.replace(new RegExp(escaped, "g"), abbr.replace(/\./g, "\u0000"));
+  });
+  cleaned = cleaned.replace(/(\d)\.(\d)/g, "$1\u0000$2");
+  const rough = cleaned.split(/(?<=[.!?])\s+(?=[A-Z0-9"'])|\n/);
+  return rough.map(s => s.replace(/\u0000/g, ".").trim()).filter(s => s.length > 10);
+}
+
+function analyze(text) {
+  const sentences = splitSentences(text);
+  const flags = [];
+  sentences.forEach((sentence, i) => {
+    const cats = [];
+    for (const [cat, patterns] of Object.entries(CATEGORIES)) {
+      if (patterns.some(p => p.test(sentence))) cats.push(cat);
+    }
+    if (cats.length) {
+      const score = cats.reduce((sum, c) => sum + (SEVERITY[c] || 1), 0);
+      flags.push({ sentence, index: i, categories: cats, score });
+    }
+  });
+  return { sentences, flags };
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+let lastFlags = [];
+let pinnedClauses = JSON.parse(localStorage.getItem("redline_pins") || "[]");
+
+function render(text) {
+  const { sentences, flags } = analyze(text);
+  lastFlags = flags;
+  const flagMap = new Map(flags.map(f => [f.index, f]));
+
+  const docHtml = sentences.map((s, i) => {
+    const flag = flagMap.get(i);
+    if (!flag) return escapeHtml(s);
+    return `<mark class="${sevClass(flag.score)}" data-idx="${i}">${escapeHtml(s)}</mark>`;
+  }).join(" ");
+
+  document.getElementById("document").innerHTML = docHtml || "(no readable text found)";
+
+  const sorted = [...flags].sort((a, b) => b.score - a.score);
+  const notesHtml = sorted.map(f => {
+    const tagsHtml = f.categories.map(c => `<span class="tag ${sevClass(SEVERITY[c] || 1)}">${c}</span>`).join("");
+    return `<div class="note" data-idx="${f.index}">
+      <div class="tags">${tagsHtml}</div>
+      <p>${escapeHtml(f.sentence)}</p>
+      <button class="pin-btn" onclick="pinClause('${escapeHtml(f.sentence.replace(/'/g, "\\'"))}')">+ Pin to Notepad</button>
+    </div>`;
+  }).join("");
+
+  document.getElementById("notes").innerHTML = notesHtml || "<p style='font-size:13px;color:var(--ink-soft);'>Nothing flagged.</p>";
+
+  const totalScore = flags.reduce((sum, f) => sum + f.score, 0);
+  let riskGrade = "LOW RISK";
+  let riskClass = "risk-low";
+  if (totalScore >= 10) { riskGrade = "HIGH RISK"; riskClass = "risk-high"; }
+  else if (totalScore >= 4) { riskGrade = "MODERATE RISK"; riskClass = "risk-mid"; }
+
+  const badgeHtml = flags.length > 0 ? `<span class="risk-badge ${riskClass}">${riskGrade} (${totalScore} PTS)</span>` : '';
+  document.getElementById("stats").innerHTML = `Scanned ${sentences.length} sentences — flagged ${flags.length}. ${badgeHtml}`;
+
+  document.getElementById("review").style.display = sentences.length ? "grid" : "none";
+  document.getElementById("emptyState").style.display = sentences.length ? "none" : "block";
+  document.getElementById("exportBtn").disabled = flags.length === 0;
+
+  document.querySelectorAll(".note").forEach(el => {
+    el.addEventListener("click", (e) => {
+      if (e.target.classList.contains("pin-btn")) return;
+      const idx = el.getAttribute("data-idx");
+      const mark = document.querySelector(`mark[data-idx="${idx}"]`);
+      if (mark) {
+        mark.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.querySelectorAll("mark.active").forEach(m => m.classList.remove("active"));
+        mark.classList.add("active");
+      }
+    });
+  });
+
+  renderPinned();
+}
+
+/* INTERACTIVE LEGEND CLICK ACTION */
+document.querySelectorAll(".legend-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const groupKey = btn.getAttribute("data-group");
+    const allowedCats = GROUPS[groupKey] || [];
+    const groupTitle = btn.textContent.trim();
+
+    if (!lastFlags.length) {
+      showToast(`No document loaded to check for ${groupTitle}`);
+      return;
+    }
+
+    const match = lastFlags.find(f => f.categories.some(c => allowedCats.includes(c)));
+
+    if (match) {
+      const mark = document.querySelector(`mark[data-idx="${match.index}"]`);
+      if (mark) {
+        mark.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.querySelectorAll("mark.active").forEach(m => m.classList.remove("active"));
+        mark.classList.add("active");
+        showToast(`Jumped to first ${groupTitle} flag!`);
+      }
+    } else {
+      showToast(`No ${groupTitle} flags found in this document.`);
+    }
+  });
+});
+
+function pinClause(sentence) {
+  if (!pinnedClauses.includes(sentence)) {
+    pinnedClauses.push(sentence);
+    localStorage.setItem("redline_pins", JSON.stringify(pinnedClauses));
+    renderPinned();
+    showToast("Pinned clause to Notepad!");
+  }
+}
+
+function removePin(index) {
+  pinnedClauses.splice(index, 1);
+  localStorage.setItem("redline_pins", JSON.stringify(pinnedClauses));
+  renderPinned();
+}
+
+function renderPinned() {
+  const container = document.getElementById("pinnedContainer");
+  if (!pinnedClauses.length) {
+    container.innerHTML = `<p style="font-size:12px; color:var(--ink-soft);">Pin clauses from flagged items to save them here.</p>`;
+    return;
+  }
+  container.innerHTML = pinnedClauses.map((c, i) => `
+    <div class="pinned-card">
+      <button class="remove-btn" onclick="removePin(${i})">&times;</button>
+      <p>"${escapeHtml(c)}"</p>
+    </div>
+  `).join("");
+}
+
+function getVaultDocs() {
+  return JSON.parse(localStorage.getItem("redline_vault") || "{}");
+}
+
+function updateVaultSelect() {
+  const vault = getVaultDocs();
+  const select = document.getElementById("vaultSelect");
+  select.innerHTML = `<option value="">Vault (Saved Docs)</option>`;
+  Object.keys(vault).forEach(title => {
+    const opt = document.createElement("option");
+    opt.value = title;
+    opt.textContent = title;
+    select.appendChild(opt);
+  });
+}
+
+document.getElementById("saveVaultBtn").addEventListener("click", () => {
+  const title = document.getElementById("docNameInput").value.trim();
+  const text = document.getElementById("input").value.trim();
+  if (!title || !text) {
+    showToast("Enter a doc title and text first!");
+    return;
+  }
+  const vault = getVaultDocs();
+  vault[title] = text;
+  localStorage.setItem("redline_vault", JSON.stringify(vault));
+  updateVaultSelect();
+  document.getElementById("docNameInput").value = "";
+  showToast(`Saved "${title}" to Vault!`);
+});
+
+document.getElementById("vaultSelect").addEventListener("change", (e) => {
+  const title = e.target.value;
+  if (!title) return;
+  const vault = getVaultDocs();
+  if (vault[title]) {
+    document.getElementById("input").value = vault[title];
+    render(vault[title]);
+    closeSidebar();
+    showToast(`Loaded "${title}"`);
+  }
+});
+
+document.getElementById("clearNotepadBtn").addEventListener("click", () => {
+  pinnedClauses = [];
+  localStorage.removeItem("redline_pins");
+  renderPinned();
+  showToast("Cleared pinned notes.");
+});
+
+const customNotes = document.getElementById("customNotes");
+customNotes.value = localStorage.getItem("redline_custom_notes") || "";
+customNotes.addEventListener("input", () => {
+  localStorage.setItem("redline_custom_notes", customNotes.value);
+});
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+function exportMarkdown() {
+  if (!lastFlags.length) return;
+  const sorted = [...lastFlags].sort((a, b) => b.score - a.score);
+  const lines = ["# Redline — Legal Analysis Report", ""];
+  lines.push(`## Flagged Clauses (${sorted.length})`);
+  sorted.forEach((f, i) => {
+    lines.push(`### ${i + 1}. ${f.categories.join(", ")} (Severity ${f.score})`);
+    lines.push(`> ${f.sentence}\n`);
+  });
+  if (pinnedClauses.length) {
+    lines.push("## Pinned Notes Vault");
+    pinnedClauses.forEach(p => lines.push(`- "${p}"`));
+    lines.push("");
+  }
+  if (customNotes.value.trim()) {
+    lines.push("## User Legal Notes");
+    lines.push(customNotes.value.trim());
+  }
+
+  const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "redline-legal-report.md";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("Exported complete report!");
+}
+
+const SAMPLE = `We collect personal information such as your name, email address, and device identifiers when you use our service. This information may be shared with third-party advertising partners to personalize ads. We do not sell your personal information to third parties except as described in this policy. We retain your data for as long as your account is active, or as needed to provide services. You may request deletion of your data at any time by contacting support. Under GDPR and CCPA, you have the right to access, correct, or delete your personal data. We use industry-standard encryption to protect your data, but we cannot guarantee absolute security. By using this app, you agree to binding arbitration and waive your right to a class action. Our service uses Google Analytics and similar tracking technologies to understand usage patterns. We may transfer your information to servers located outside your country of residence, e.g. the U.S. or other regions where our partners operate. We may update this policy from time to time without prior notice.`;
+
+document.getElementById("analyzeBtn").addEventListener("click", () => render(document.getElementById("input").value));
+document.getElementById("sampleBtn").addEventListener("click", () => {
+  document.getElementById("input").value = SAMPLE;
+  render(SAMPLE);
+});
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.getElementById("input").value = "";
+  document.getElementById("review").style.display = "none";
+  document.getElementById("emptyState").style.display = "block";
+  document.getElementById("stats").textContent = "";
+});
+document.getElementById("exportBtn").addEventListener("click", exportMarkdown);
+
+function loadFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    document.getElementById("input").value = evt.target.result;
+    render(evt.target.result);
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById("fileInput").addEventListener("change", (e) => loadFile(e.target.files[0]));
+
+const dropzone = document.getElementById("dropzone");
+["dragenter", "dragover"].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add("dragover"); }));
+["dragleave", "drop"].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove("dragover"); }));
+dropzone.addEventListener("drop", (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+updateVaultSelect();
+</script>
+</body>
+</html>
